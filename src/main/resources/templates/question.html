@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>问题管理</title>
+    <link rel="stylesheet" href="css/layui.css">
+    <link rel="stylesheet" href="css/community.css">
+    <script src="layui.js"></script>
+    <script src="js/jquery.min.js"></script>
+
+</head>
+<body class="layui-layout-body" style="background-color: #f2f2f2;">
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo">后台管理</div>
+        <!-- 头部区域（可配合layui已有的水平导航） -->
+        <ul class="layui-nav layui-layout-left">
+            <li class="layui-nav-item"><a href="/">首页</a></li>
+        </ul>
+    </div>
+
+    <div class="layui-side layui-bg-black">
+        <div class="layui-side-scroll">
+            <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
+            <ul class="layui-nav layui-nav-tree" lay-filter="test">
+                <li class="layui-nav-item layui-nav-itemed">
+                    <a class="" href="javascript:;">管理分类</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="/question">论坛问题</a></dd>
+                        <dd><a href="javascript:;">列表二</a></dd>
+                        <dd><a href="javascript:;">列表三</a></dd>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="layui-body ">
+        <div class="layui-fluid kvf-fluid-padding15">
+            <div class="layui-card">
+                <form>
+                    <div class="layui-form layui-card-header kvf-card-header-auto">
+                        <div class="demoTable">
+                            问题标签：
+                            <div class="layui-inline">
+                                <input class="layui-input" name="tag" id="demoReload" autocomplete="off">
+                            </div>
+                            <button class="layui-btn" data-type="reload">搜索</button>
+                            <button class="layui-btn " type="reset">
+                                <i class="layui-icon layui-icon-refresh-1"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                </form>
+                <!-- 内容主体区域 -->
+                <div class="layui-card-body">
+                    <table id="question" lay-filter="question"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--表格行工具栏模板-->
+    <script type="text/html" id="rowToolbarTpl">
+        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del"><i class="layui-icon layui-icon-delete"></i>删除</a>
+    </script>
+    <script>
+        layui.use(['element', 'form', 'layer', 'table'], function () {
+            var elemet = layui.element, form = layui.form, layer = layui.layer, table = layui.table;
+            var tableId = 'question';
+            //第一个实例
+            table.render({
+                elem: '#' + tableId
+                , height: 500
+                , id:'testReload'
+                , url: 'question/list' //数据接口
+                , page: true //开启分页
+                , parseData: function (res) {
+                    return {
+                        "code": 0
+                        , "msg": ""
+                        , "count": res.total
+                        , "data": res.questionList
+                    }
+
+                }
+                , cols: [
+                    [ //表头
+                        {field: 'title', title: '问题标题', width: 140}
+                        , {field: 'creator', title: '问题发起人', width: 105}
+                        , {
+                        field: 'gmtCreate',
+                        title: '问题创建时间',
+                        width: 208,
+                        templet: '<div>{{ layui.util.toDateString(d.gmtCreate, "yyyy-MM-dd HH:mm:ss") }}</div>'
+                    }
+                        , {
+                        field: 'gmtModified',
+                        title: '问题修改时间',
+                        width: 208,
+                        templet: '<div>{{ layui.util.toDateString(d.gmtModified, "yyyy-MM-dd HH:mm:ss") }}</div>'
+                    }
+                        , {field: 'commentCount', title: '评论数量', width: 110}
+                        , {field: 'viewCount', title: '浏览次数', width: 110,}
+                        , {field: 'likeCount', title: '点赞次数', width: 110,}
+                        , {field: 'tag', title: '问题标签', width: 140}
+                        , {field: 'description', title: '问题描述', width: 177,}
+                        , {field: '', title: '操作', width: 100, fixed: 'right', templet: '#rowToolbarTpl'}
+                    ]
+                ]
+            });
+
+            // 表格行按钮 监听事件
+            //监听工具条
+            table.on('tool(' + tableId + ')', function (obj) {
+                var data = obj.data; //获得当前行数据
+                var layEvent = obj.event; //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+                var tr = obj.tr; //获得当前行 tr 的DOM对象
+                console.log(data);
+                if (layEvent === 'del') {
+                    layer.confirm('确定删除吗？', function (index) {
+                        //执行 Ajax 后重载
+                        $.ajax({
+                            type: 'post',
+                            url: 'question/remove/' + data.id,
+                            async: false,
+                            success: function (r) {
+                                console.log(r);
+                                if (r.code === 200) {
+                                    console.log(r);
+                                    table.reload(tableId);
+                                    //关闭弹框
+                                    layer.close(index);
+                                    layer.msg("删除成功", {icon: 6});
+                                } else {
+                                    layer.msg("删除失败", {icon: 5});
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+
+            var $ = layui.$, active = {
+                reload: function(){
+                    var demoReload = $('#demoReload');
+
+                    //执行重载
+                    table.reload('testReload', {
+                        page: {
+                            curr: 1 //重新从第 1 页开始
+                        }
+                        ,where: {
+                            key: {
+                                tag: demoReload.val()
+                            }
+                        }
+                    }, 'data');
+                }
+            };
+
+            $('.demoTable .layui-btn').on('click', function(){
+                var type = $(this).data('type');
+                active[type] ? active[type].call(this) : '';
+            });
+        });
+    </script>
+    <div class="layui-footer">
+
+    </div>
+</div>
+</body>
+</html>
